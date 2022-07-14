@@ -1,6 +1,8 @@
 import React, {useState} from 'react';
-import FilmPage from '../FilmPage/FilmPage'
+import FilmPage from '../FilmPage/FilmPage1'
 import {useQuery} from "react-query";
+import {queryClient} from "../../index";
+import {Link} from "react-router-dom";
 
 // const useGetFilms = () => useQuery('films', async () => {
 //     await new Promise(resolve => setTimeout(resolve, 2000))
@@ -87,21 +89,24 @@ import {useQuery} from "react-query";
 
 const useGetFilms = () => useQuery('films', () => {
     return fetch('https://swapi.dev/api/films').then(res => res.json())
-})
+        .then(({results}) => {
+            results.forEach(film => queryClient.setQueryData(['film', film.url], film))
+            return results;
+        })
+}, {cacheTime:10000})
 
 const Films = () => {
     const [filmsUrl, setFilmUrl] = useState('');
-    const {data: {results = []} = {}, isLoading} = useGetFilms();
+    const {data, isLoading} = useGetFilms();
 
     return isLoading ? <div>Loading...</div> : filmsUrl
         ? <>
             <button onClick={() => setFilmUrl('')}>Back</button>
             <FilmPage url={filmsUrl}/>
         </>
-        : <ul>{results.map(planet => {
-            return <li key={planet.title}><b>Planet : </b><a href="#"
-                                                             onClick={() => setFilmUrl(planet.url)}>{planet.title}</a>
+        : Array(30).fill(0).map(elem => <ul>{data.map(planet => {
+            return <li key={planet.title}><b>Planet : </b><Link to={planet.url.replace(/https:\/\/swapi.dev\/api\/films/g, '')}>{planet.title}</Link>
             </li>
-        })}</ul>
+        })}</ul>)
 };
 export default Films;
