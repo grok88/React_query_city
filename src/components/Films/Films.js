@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import FilmPage from '../FilmPage/FilmPage1'
+import FilmPage, {fetchFilm} from '../FilmPage/FilmPage1'
 import {useQuery} from "react-query";
 import {queryClient} from "../../index";
 import {Link} from "react-router-dom";
@@ -90,10 +90,10 @@ import {Link} from "react-router-dom";
 const useGetFilms = () => useQuery('films', () => {
     return fetch('https://swapi.dev/api/films').then(res => res.json())
         .then(({results}) => {
-            results.forEach(film => queryClient.setQueryData(['film', film.url], film))
+            //     results.forEach(film => queryClient.setQueryData(['film', film.url], film))
             return results;
         })
-}, {cacheTime:10000})
+}, {cacheTime: 10000})
 
 const Films = () => {
     const [filmsUrl, setFilmUrl] = useState('');
@@ -104,9 +104,18 @@ const Films = () => {
             <button onClick={() => setFilmUrl('')}>Back</button>
             <FilmPage url={filmsUrl}/>
         </>
-        : Array(30).fill(0).map(elem => <ul>{data.map(planet => {
-            return <li key={planet.title}><b>Planet : </b><Link to={planet.url.replace(/https:\/\/swapi.dev\/api\/films/g, '')}>{planet.title}</Link>
-            </li>
-        })}</ul>)
+        : <>
+            <div>
+                <button onClick={() => queryClient.invalidateQueries('film', {refetchInactive: true})}>Обновить все
+                </button>
+            </div>
+            <ul>{data.map(planet => {
+                return <li key={planet.title} onMouseEnter={() => {
+                    queryClient.prefetchQuery(['film', planet.url], () => fetchFilm(planet.url), {staleTime: Infinity})
+                }}><b>Planet : </b><Link
+                    to={planet.url.replace(/https:\/\/swapi.dev\/api\/films/g, '')}>{planet.title}</Link>
+                </li>
+            })}</ul>
+        </>
 };
 export default Films;
